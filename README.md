@@ -8,7 +8,7 @@ console. Anything typed into the console that does not begin with a ! will be
 passed directly to the server, so you can do pretty much whatever you want.
 
 Known bugs:
-* Right now when you !QUIT, the bot doesn't exit cleanly. I think this is
+* Right now when you !QUIT from IRC, the bot doesn't exit cleanly. I think this is
 because the thread closes and closes the socket connection before the main 
 function closes. QUIT from the command line works just fine though.
 
