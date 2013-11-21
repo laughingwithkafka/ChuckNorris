@@ -1,22 +1,50 @@
 #!/usr/bin/env python
 
-import socket
-import threading
-import time
-import sys
+##############################################################################
+##  ChuckNorris the IRC bot  ##  created by: persistence                    ##
+##############################################################################
+
+##############################################################################
+##  USER SETTINGS GO HERE                                                   ##
+##############################################################################
+
+# The server and port the bot should connect to.
+SERVER = "irc.zempirians.com"
+PORT = 6667
+
+# The bot's name on the server.
+HANDLE = ""
+
+# The password for the bot to identify itself.
+# This should be "" if the bot's nick is not registered
+HANDLE_PASSWORD = ""
+
+# The nick of the bot's owner. This user will be able to send the bot commands.
+# This user will also receive a private message from the bot once the bot
+# connects to the server.
+MASTER_NICK = "" # Your real nick goes here to control the bot.
+
+# Auto-join these rooms on connect. It's ok to leave empty.
+ROOMS = [ ] 
+
+# File containing one Chuck Norris fact per line.
+# These are read when users address the bot in a room.
+# The file should probably be unix-formatted (\n line-endings).
+CHUCK_NORRIS_FACTS_FILE = "chuck_norris_facts.txt"
+
+##############################################################################
+## END OF USER SETTINGS                                                     ##
+##############################################################################
+
+import socket       # To build the connection.
+import threading    # For the listening thread.
+import time         # For delays between commands on connect.
+import sys          # For sys.exit().
 import random       # For Chuck Norris fact selection.
 import lxml.html    # For imgur image titles.
 
-##### USER SETTINGS GO HERE #####
-SERVER = "irc.zempirians.com"
-PORT = 6667
-HANDLE = ""
-HANDLE_PASSWORD = "" # Unnecessary unless the nick is registered.
-MASTER_NICK = "" # Your real nick goes here to control the bot.
-ROOMS = [ ] # Rooms to join on connect. It's ok to leave empty.
-CHUCK_NORRIS_FACTS_FILE = "chuck_norris_facts.txt"
 
-# Other (non-user settings) global variables
+# Global variables that should not be changed by the user. (Not settings.)
 ENABLE_IRC_COMMANDS = True
 CHUCK_NORRIS_FACTS = []
 
@@ -115,7 +143,7 @@ def listen(s):
                     "depress", "sad", "hate", "hating", "tit",
                     "show me", "kill", "sex", "cry", "troll"]
     
-    targeted_nicks = ["stan"]
+    targeted_nicks = []
 
     while s:
         try:
@@ -161,17 +189,21 @@ def listen(s):
                         new_message = random_chuck_norris_fact()
                         s.send(build_message(new_recipient, new_message))
 
-                    # Special functions and commands just for me. :)
+                    # Commands that can only be run by the master nick.
                     if sender_nick == MASTER_NICK and ENABLE_IRC_COMMANDS:
+                        # Quit. Obviously.
                         if "!QUIT" == message[0:5]:
                             s.send("QUIT\r\n")
                             s.close()
                             really_quit()
 
+                        # Join a room: !JOIN #RoomName
                         elif "!JOIN" == message[0:5]:
                             room = message.split(" ")[1]
                             s.send("JOIN %s\r\n" % room)
 
+                        # Leave a room. Including room name is optional. 
+                        # !PART #RoomName
                         elif "!PART" == message[0:5]:
                             if len(message.split()) > 1:
                                 room = message.split(" ")[1]
@@ -179,14 +211,30 @@ def listen(s):
                                 room = new_recipient
                             s.send("PART %s\r\n" % room)
 
+                        # Add a word to the list of banned words (saying these
+                        # will kick a targeted nick).
+                        # !ADDWORD word
+                        # Leave off the word to just display current words.
                         elif "!ADDWORD" in message:
                             if len(message.split()) > 1:
-                                banned_words.append(message.split(" ")[1])
+                                banned_words.append(message.split(" ")[1].lower())
 
                             new_message = "banned_words=%s" % banned_words
                             s.send(build_message(new_recipient, new_message))
                             print new_message
 
+                        # Remove a word from the list of banned words.
+                        # !DELWORD word
+                        elif "!DELWORD" in message:
+                            if len(message.split()) > 1:
+                                banned_words.remove(message.split(" ")[1].lower())
+
+                            new_message = "banned_words=%s" % banned_words
+                            s.send(build_message(new_recipient, new_message))
+                            print new_message
+
+                        # Add a targeted nick. !TARGET nick
+                        # Leave off the nick to just display current targets.
                         elif "!TARGET" in message:
                             if len(message.split()) > 1:
                                 targeted_nicks.append(message.split(" ")[1].lower())
@@ -195,6 +243,7 @@ def listen(s):
                             s.send(build_message(new_recipient, new_message))
                             print new_message
 
+                        # Remove a nick from the targeted nicks. !UNTARGET nick
                         elif "!UNTARGET" in message:
                             if len(message.split()) > 1:
                                 targeted_nicks.remove(message.split(" ")[1].lower())
@@ -203,12 +252,18 @@ def listen(s):
                             s.send(build_message(new_recipient, new_message))
                             print new_message
 
+                        # Disable IRC commands. This is good for when you go
+                        # AFK in case someone gets the brilliant idea to 
+                        # kick you and take over your nick. !DISABLE 
+                        #
+                        # Re-enable commands by typing !ENABLE into the running
+                        # console.
                         elif "!DISABLE" in message:
                             ENABLE_IRC_COMMANDS = False
                             s.send(build_message(new_recipient, "IRC commands have been disabled."))
 
 
-                    # Kick stan if he uses banned words
+                    # Kick targeted_nicks if they use banned words
                     if sender_nick.lower() in targeted_nicks:
                         word_counter = 0
                         for word in banned_words:

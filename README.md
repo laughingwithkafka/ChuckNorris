@@ -11,9 +11,10 @@ passed directly to the server, so you can do pretty much whatever you want.
 
 **Known bugs:**
 
-* Right now when you !QUIT from IRC, the bot doesn't exit cleanly. I think this is
-because the thread closes and closes the socket connection before the main 
-function closes. QUIT from the command line works just fine though.
+* Right now when you !QUIT from IRC, the bot doesn't exit cleanly. I think this 
+is because the thread closes and closes the socket connection before the main 
+function closes. QUIT from the command line works just fine though. Pressing
+ENTER in the command line after a funky !QUIT closes the program with an error. 
 
 **Features to add:**
 
