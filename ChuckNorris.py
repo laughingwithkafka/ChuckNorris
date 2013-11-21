@@ -11,7 +11,8 @@ import lxml.html    # For imgur image titles.
 SERVER = "irc.zempirians.com"
 PORT = 6667
 HANDLE = ""
-HANDLE_PASSWORD = "" # Not needed unless the nick is registered.
+HANDLE_PASSWORD = "" # Unnecessary unless the nick is registered.
+MASTER_NICK = "" # Your real nick goes here to control the bot.
 ROOMS = [ ] # Rooms to join on connect. It's ok to leave empty.
 CHUCK_NORRIS_FACTS_FILE = "chuck_norris_facts.txt"
 
@@ -20,6 +21,7 @@ ENABLE_IRC_COMMANDS = True
 CHUCK_NORRIS_FACTS = []
 
 
+# Kills all threads
 def really_quit():
     # Terminate running threads
     for thread in threading.enumerate():
@@ -31,6 +33,8 @@ def really_quit():
     sys.exit()
 
 
+# Logs messages that are sent directly to the bot (as opposed to
+# the room/channel) to a file. I did this to examine hack attempts.
 def log_message(message):
     log_filename = sys.argv[0] + ".txt"
     log_file = open(log_filename, 'a')
@@ -38,7 +42,7 @@ def log_message(message):
     log_file.close()
 
 
-# Reads the Chuck Norris facts into memory.
+# Loads the Chuck Norris facts into memory to prevent constant disk access.
 def load_chuck_norris_facts():
     f = open(CHUCK_NORRIS_FACTS_FILE, 'r')
     global CHUCK_NORRIS_FACTS
@@ -69,7 +73,7 @@ def get_imgur_image_title(url):
 
 # Takes a IRC message as input.
 # Returns a tuple containing sender_nick and room if a user joins the room.
-# Otherwise returns False.
+# Returns False if the message was not a JOIN notification.
 def is_join(data):
     # :fas!b@FFEB8179.999AE7B1.9E737E40.IP JOIN :#HowToHack
     header = data.split(":")[1]
@@ -158,7 +162,7 @@ def listen(s):
                         s.send(build_message(new_recipient, new_message))
 
                     # Special functions and commands just for me. :)
-                    if sender_nick == "persistence" and ENABLE_IRC_COMMANDS:
+                    if sender_nick == MASTER_NICK and ENABLE_IRC_COMMANDS:
                         if "!QUIT" == message[0:5]:
                             s.send("QUIT\r\n")
                             s.close()
@@ -264,7 +268,7 @@ def main():
         for room in ROOMS:
             startup_commands.append("JOIN %s" % room)
 
-        startup_commands.append("PRIVMSG persistence :I'm here.")
+        startup_commands.append("PRIVMSG %s :I'm here." % MASTER_NICK)
 
         for cmd in startup_commands:
             s.send(cmd + "\r\n")
